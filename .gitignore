@@ -1,0 +1,4 @@
+paper_trading.db
+paper_trader.log
+__pycache__/
+*.pyc
