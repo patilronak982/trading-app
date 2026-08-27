@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WallStreet Sim - Stock Paper Trading Platform</title>
+    <!-- Tailwind CSS for UI Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Stock Price Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+
+    <!-- Top Navigation Bar -->
+    <nav class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-chart-line text-emerald-500 text-2xl"></i>
+            <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                WallStreet Sim
+            </span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button onclick="resetAccount()" class="text-xs bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Reset Account
+            </button>
+            <div class="text-right">
+                <p class="text-xs text-slate-400">Available Cash</p>
+                <p id="nav-cash" class="text-sm font-semibold text-emerald-400">$100,000.00</p>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Portfolio Overview Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-slate-800/60 border border-slate-700/50 p-5 rounded-2xl shadow-xl">
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Portfolio Value</p>
+                <h3 id="metric-equity" class="text-2xl font-bold text-white mt-1">$100,000.00</h3>
+                <p id="metric-return" class="text-xs font-medium text-slate-400 mt-2">0.00% total return</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/50 p-5 rounded-2xl shadow-xl">
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Cash Balance</p>
+                <h3 id="metric-cash" class="text-2xl font-bold text-white mt-1">$100,000.00</h3>
+                <p class="text-xs text-slate-400 mt-2">Ready for deployment</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/50 p-5 rounded-2xl shadow-xl">
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Invested Assets</p>
+                <h3 id="metric-assets" class="text-2xl font-bold text-white mt-1">$0.00</h3>
+                <p id="metric-positions-count" class="text-xs text-slate-400 mt-2">0 active positions</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/50 p-5 rounded-2xl shadow-xl">
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Unrealized P&L</p>
+                <h3 id="metric-pnl" class="text-2xl font-bold text-slate-400 mt-1">$0.00</h3>
+                <p class="text-xs text-slate-400 mt-2">Live open position gain/loss</p>
+            </div>
+        </div>
+
+        <!-- Trading Terminal Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left: Chart & Market Lookup -->
+            <div class="lg:col-span-2 bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 id="chart-symbol" class="text-2xl font-bold text-white">AAPL</h2>
+                                <span id="chart-name" class="text-sm text-slate-400">Apple Inc.</span>
+                            </div>
+                            <p id="chart-price" class="text-xl font-bold text-emerald-400 mt-1">$0.00</p>
+                        </div>
+                        
+                        <!-- Stock Search Form -->
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="symbol-search-input" value="AAPL" uppercase
+                                class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 w-32 uppercase font-semibold tracking-wider">
+                            <button onclick="loadStockData()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition">
+                                <i class="fa-solid fa-magnifying-glass"></i> Quote
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas for Chart.js -->
+                    <div class="relative w-full h-72">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Order Execution Panel -->
+            <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white border-b border-slate-700/60 pb-3 mb-4 flex items-center justify-between">
+                        <span>Execute Order</span>
+                        <span id="trade-ticker-label" class="text-xs bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-md">AAPL</span>
+                    </h3>
+
+                    <div class="space-y-4">
+                        <!-- Order Action Tabs -->
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-900 rounded-xl">
+                            <button id="tab-buy" onclick="setOrderSide('BUY')" class="py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition">BUY</button>
+                            <button id="tab-sell" onclick="setOrderSide('SELL')" class="py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition">SELL</button>
+                        </div>
+
+                        <!-- Shares Quantity Input -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Number of Shares</label>
+                            <input type="number" id="order-qty" value="10" min="1" 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-semibold">
+                        </div>
+
+                        <!-- Order Estimate Summary -->
+                        <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-700/30 space-y-2 text-sm">
+                            <div class="flex justify-between text-slate-400">
+                                <span>Execution Price:</span>
+                                <span id="est-price" class="text-white font-medium">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>Estimated Total:</span>
+                                <span id="est-total" class="text-white font-medium">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="btn-submit-order" onclick="executeOrder()" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-900/30">
+                    Submit BUY Order
+                </button>
+            </div>
+        </div>
+
+        <!-- Holdings & Positions Table -->
+        <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-white mb-4">Current Portfolio Holdings</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700/60 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <th class="py-3 px-4">Symbol</th>
+                            <th class="py-3 px-4">Shares</th>
+                            <th class="py-3 px-4">Avg Price</th>
+                            <th class="py-3 px-4">Current Price</th>
+                            <th class="py-3 px-4">Market Value</th>
+                            <th class="py-3 px-4">Unrealized P&L</th>
+                            <th class="py-3 px-4 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolio-table-body" class="divide-y divide-slate-700/40 text-sm">
+                        <!-- Dynamic Position Rows Inserted Here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Trade History -->
+        <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-white mb-4">Transaction History Log</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700/60 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <th class="py-3 px-4">Time</th>
+                            <th class="py-3 px-4">Action</th>
+                            <th class="py-3 px-4">Symbol</th>
+                            <th class="py-3 px-4">Shares</th>
+                            <th class="py-3 px-4">Price</th>
+                            <th class="py-3 px-4">Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-700/40 text-sm">
+                        <!-- Dynamic Order History Rows Inserted Here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application JavaScript Engine -->
+    <script>
+        // State Management stored in localStorage
+        const INITIAL_CASH = 100000.00;
+        let account = JSON.parse(localStorage.getItem('wallstreet_sim_acc')) || {
+            cash: INITIAL_CASH,
+            positions: {}, // { "AAPL": { shares: 10, totalCost: 1500 } }
+            history: []
+        };
+
+        let currentSymbol = "AAPL";
+        let currentPrice = 0.00;
+        let orderSide = "BUY";
+        let chartInstance = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            loadStockData();
+            updatePortfolioUI();
+            
+            // Recalculate estimated order total dynamically on quantity change
+            document.getElementById('order-qty').addEventListener('input', updateOrderEstimate);
+        });
+
+        function saveAccountState() {
+            localStorage.setItem('wallstreet_sim_acc', JSON.stringify(account));
+            updatePortfolioUI();
+        }
+
+        function resetAccount() {
+            if (confirm("Reset account back to $100,000 cash? All holdings will be cleared.")) {
+                account = { cash: INITIAL_CASH, positions: {}, history: [] };
+                saveAccountState();
+            }
+        }
+
+        // Initialize Chart.js Instance
+        function initChart() {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Price (USD)',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                        y: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        }
+
+        // Fetch Real-time Stock Data from Yahoo Finance API via CORS Proxy
+        async function loadStockData() {
+            const inputSymbol = document.getElementById('symbol-search-input').value.trim().toUpperCase();
+            if (!inputSymbol) return;
+
+            currentSymbol = inputSymbol;
+            document.getElementById('chart-symbol').innerText = currentSymbol;
+            document.getElementById('trade-ticker-label').innerText = currentSymbol;
+            document.getElementById('chart-price').innerText = "Loading...";
+
+            try {
+                // Query Yahoo Finance API endpoint using allorigins CORS proxy
+                const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${currentSymbol}?interval=1d&range=1mo`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+
+                if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+                    throw new Error("Invalid Ticker Symbol");
+                }
+
+                const result = data.chart.result[0];
+                const meta = result.meta;
+                const timestamps = result.timestamp;
+                const quotes = result.indicators.quote[0].close;
+
+                currentPrice = meta.regularMarketPrice || quotes[quotes.length - 1];
+
+                // Update Price Headings
+                document.getElementById('chart-price').innerText = `$${currentPrice.toFixed(2)}`;
+                document.getElementById('chart-name').innerText = meta.shortName || meta.symbol;
+
+                // Format Chart Data
+                const labels = timestamps.map(ts => new Date(ts * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' }));
+                const prices = quotes.filter(p => p !== null);
+
+                chartInstance.data.labels = labels;
+                chartInstance.data.datasets[0].data = prices;
+                chartInstance.update();
+
+                updateOrderEstimate();
+
+            } catch (err) {
+                console.warn("Yahoo Finance query failed or CORS limited. Switching to live simulation engine fallback.");
+                fallbackSimulation(currentSymbol);
+            }
+        }
+
+        // Fallback Engine if network CORS limits occur
+        function fallbackSimulation(symbol) {
+            const basePrices = { "AAPL": 185.20, "TSLA": 210.50, "NVDA": 125.40, "AMZN": 178.00, "MSFT": 420.10 };
+            currentPrice = basePrices[symbol] || (Math.random() * 150 + 50);
+
+            document.getElementById('chart-price').innerText = `$${currentPrice.toFixed(2)}`;
+            document.getElementById('chart-name').innerText = `${symbol} Corporation`;
+
+            // Generate mock historical trajectory
+            let simulatedPrices = [];
+            let labels = [];
+            let priceTrack = currentPrice * 0.9;
+            for (let i = 20; i >= 0; i--) {
+                priceTrack += (Math.random() - 0.48) * 3;
+                simulatedPrices.push(priceTrack.toFixed(2));
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                labels.push(d.toLocaleDateString([], { month: 'short', day: 'numeric' }));
+            }
+
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets[0].data = simulatedPrices;
+            chartInstance.update();
+            updateOrderEstimate();
+        }
+
+        // Toggle Buy / Sell Tabs
+        function setOrderSide(side) {
+            orderSide = side;
+            const buyTab = document.getElementById('tab-buy');
+            const sellTab = document.getElementById('tab-sell');
+            const btnSubmit = document.getElementById('btn-submit-order');
+
+            if (side === 'BUY') {
+                buyTab.className = "py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition";
+                sellTab.className = "py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                btnSubmit.className = "w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-900/30";
+                btnSubmit.innerText = `Submit BUY Order`;
+            } else {
+                sellTab.className = "py-2 text-sm font-semibold rounded-lg bg-rose-600 text-white transition";
+                buyTab.className = "py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                btnSubmit.className = "w-full mt-6 bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-rose-900/30";
+                btnSubmit.innerText = `Submit SELL Order`;
+            }
+            updateOrderEstimate();
+        }
+
+        function updateOrderEstimate() {
+            const qty = parseInt(document.getElementById('order-qty').value) || 0;
+            const total = qty * currentPrice;
+            document.getElementById('est-price').innerText = `$${currentPrice.toFixed(2)}`;
+            document.getElementById('est-total').innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        // Execute Stock Transaction
+        function executeOrder() {
+            const qty = parseInt(document.getElementById('order-qty').value);
+            if (!qty || qty <= 0) {
+                alert("Please enter a valid share quantity.");
+                return;
+            }
+
+            const totalCost = qty * currentPrice;
+
+            if (orderSide === 'BUY') {
+                if (totalCost > account.cash) {
+                    alert(`Insufficient cash balance! Required: $${totalCost.toFixed(2)}, Available: $${account.cash.toFixed(2)}`);
+                    return;
+                }
+
+                account.cash -= totalCost;
+                if (!account.positions[currentSymbol]) {
+                    account.positions[currentSymbol] = { shares: 0, totalCost: 0 };
+                }
+                account.positions[currentSymbol].shares += qty;
+                account.positions[currentSymbol].totalCost += totalCost;
+
+            } else if (orderSide === 'SELL') {
+                const holding = account.positions[currentSymbol];
+                if (!holding || holding.shares < qty) {
+                    alert(`Insufficient shares! You own ${holding ? holding.shares : 0} shares of ${currentSymbol}.`);
+                    return;
+                }
+
+                const avgCost = holding.totalCost / holding.shares;
+                holding.shares -= qty;
+                holding.totalCost -= (avgCost * qty);
+                account.cash += totalCost;
+
+                if (holding.sh
